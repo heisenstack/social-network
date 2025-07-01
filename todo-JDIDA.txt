@@ -1,0 +1,59 @@
+//home
+    follow khdama ms makat'afficher walo mora ma dirha
+    categories filter
+    scroll m7wiiiiiii
+    create event khssha tkhtar chmn grp
+    chatWIdget
+
+//groups
+    create chimrat katcree eadi w chi mrat katcree w makadkhlch luser lgrp
+    leave w delete makhdamach
+    join khdama ms machi real time
+    invitations makhdaminch
+
+//profile
+    follow makhdamach
+    khs yban luse wch rah mfollowik wla mrequesti
+    svg makhdaminch
+
+//messages
+    khss ta lusers li public t9dr tsiftlhum msg wkha mamfollowihumch w ychufoh
+
+
+
+//abdo
+
+    allusers, sereach, notification/page.js, 
+    See Profile/messages, message home/scroll + messages, 
+    invitations, trothel scrolle, stories, Events,
+
+
+
+
+
+
+
+
+    /////////////////////////////////
+    Messages mkhdaminch
+
+    Posts f groups  mkhdaminch
+    Posts f groups makaytcreawch
+    Mt9derch t accepty invitation dial joini chi grp sifthalk admin
+    Mt9derch tcreye event wst grp
+    Fach katsift invitation lchi user ydkhol lgrp, fach kidkhell invitation mn notification group not found katsift id 0
+    Fach kadir interested lchi event makatkonch f my Events
+    Like o Save f page dial post mkhdamach
+    Kat9der t access l routes http://localhost:3000/messages ola http://localhost:3000/groups ... wkha mamlogich
+    f Received Requests f AllUsers fach kat accepty chi wahd l invitation dialo katb9a
+    Fach katbghi t editi l profile katl3 error (Error Parsing ID)
+    Fach kadkhl lprofile dial chi wahd khor, ila followito ola siftlo request katupdata fl front wlkin fach katrefreshi katwli ki kant
+    Fach katfollowi chi wahd public, mktupdatach fl front wlkin fach katrefreshi lpage katkhdem (L3eks dial hdi li fo9 hdi)
+    F AllCategories, mtlan f Education kaina 1 posts wlkin fach katfiltri bih mtl9a ta post
+    Fach katcryi grp jdid f page dial groups, ila mkan ta grp f my groups katl3 error l79ach kaloopiw ela grps li kainin bach nprependiw li tcreya, ila mkan ta grp katreturni error wlkin grp kitcreya - hdi ghdi tkon ta f posts f home, fach atcreyi post jdid ayloopi ela l9dam myl9ahomch ytl3 error
+    Wahd lprofile kan 0 followers o tl3tli unfollow fach dertha wlaw followers -1 hhhhh wlkin fach refreshit khdmt
+    Story mkbanch flwl fach katposta
+    Logic dial story m3kos (Ila kant seen katl3 bhala mchi seen)
+
+
+    Khas ntestiw ta b data khawia bach mykonoch errors
