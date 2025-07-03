@@ -47,8 +47,7 @@ export default function GroupPage() {
           setIsLoggedIn(data);
         }
       } catch (error) {
-        // setError(true);
-        console.error("Error checking login status:", error);
+        console.log("Error checking login status:", error);
       } finally {
         setIsLoading(false);
       }
@@ -59,6 +58,7 @@ export default function GroupPage() {
 
   useEffect(() => {
     async function fetchGroup(group_id) {
+      setIsLoading(true);
       try {
         const response = await fetch(
           `http://localhost:8404/group?group_id=${group_id}`,
@@ -72,8 +72,6 @@ export default function GroupPage() {
         }
 
         const data = await response.json();
-        console.log("Group dataaa:", data);
-
         setSelectedGroup(data);
         fetchGroupDetails("posts", data.group_id);
         setIsLoading(false);
@@ -102,7 +100,6 @@ export default function GroupPage() {
         throw new Error("Failed to fetch group data");
       }
       const data = await response.json();
-      console.log(`Group ${type} Data:`, data);
       setSelectedGroup((prev) => ({
         ...prev,
         [type]: data,
@@ -155,7 +152,6 @@ export default function GroupPage() {
         throw new Error("Failed to fetch group data");
       }
       const data = await response.json();
-      console.log(`Group Members Data:`, data);
       setUsersToInvite(data);
     } catch (err) {
       console.log(err);
@@ -163,7 +159,6 @@ export default function GroupPage() {
   }
 
   const removeGroup = (groupId) => {
-    console.log("Group to remove:", groupId);
     router.push("/groups");
   };
 
@@ -174,17 +169,19 @@ export default function GroupPage() {
     }));
   };
 
-  if (!isLoggedIn) {
-    return <AuthForm onLoginSuccess={() => setIsLoggedIn(true)} />; // Pass a function to onLoginSuccess
-  }
-
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>
-        <p>Loading...</p>
+        <div className={styles.loadingSpinner}></div>
+        <p className={styles.loadingText}>Loading...</p>
       </div>
     );
   }
+
+  if (!isLoggedIn) {
+    return <AuthForm onLoginSuccess={() => setIsLoggedIn(true)} />;
+  }
+
 
   if (!selectedGroup) {
     return (
@@ -473,7 +470,6 @@ export default function GroupPage() {
                   : styles.adminActionBtn
                   }`}
                 onClick={() => {
-                  console.log(selectedGroup);
                   handleFollow(selectedGroup.admin_id, selectedGroup.group_id);
                 }}
               >
@@ -576,13 +572,13 @@ export default function GroupPage() {
                 )}
 
                 <div className={styles.postsScrollContainer}>
-                  {(selectedGroup?.posts || []).length > 0 ? (
-                    (selectedGroup.posts || []).map((post) => (
+                  {selectedGroup.posts && selectedGroup.posts?.length > 0 ? (
+                    selectedGroup.posts.map((post) => (
                       <PostsComponent
                         post={post}
                         key={post.post_id}
                         groupId={selectedGroup.group_id}
-                        setPosts={setSelectedGroup} 
+                        setPosts={setSelectedGroup}
                       />
                     ))
                   ) : (
@@ -597,6 +593,7 @@ export default function GroupPage() {
                     onClose={() => setShowPostForm(false)}
                     onPostCreated={addNewPost}
                     group_id={selectedGroup.group_id}
+                    action={"group"}
                   />
                 )}
               </div>

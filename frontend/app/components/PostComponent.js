@@ -69,14 +69,8 @@ export default function PostComponent({ posts: initialPosts }) {
         body: JSON.stringify({ post_id: postId, group_id: 0 }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        console.error(data);
-      }
       if (response.ok) {
         const updatedPost = await response.json();
-        console.log("Updated post: ", updatedPost);
-
         setPosts((prevPosts) =>
           prevPosts.map((post) =>
             post.post_id === postId
@@ -91,7 +85,7 @@ export default function PostComponent({ posts: initialPosts }) {
         );
       }
     } catch (error) {
-      console.error(error);
+      console.log(error);
     }
   }
 

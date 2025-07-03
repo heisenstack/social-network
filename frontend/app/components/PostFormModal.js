@@ -1,8 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
-import styles from "../styles/PostFormModal.module.css"; 
+import styles from "../styles/PostFormModal.module.css";
 
-export default function PostFormModal({ onClose, onPostCreated }) {
+export default function PostFormModal({
+  onClose,
+  onPostCreated,
+  group_id,
+  action,
+}) {
   const [postFormInput, setPostFormInput] = useState({
     title: "",
     content: "",
@@ -34,15 +39,26 @@ export default function PostFormModal({ onClose, onPostCreated }) {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("http://localhost:8404/new_post", {
-        method: "GET",
-        credentials: "include",
-      });
+      let response;
+      if (group_id && group_id > 0) {
+        response = await fetch(
+          `http://localhost:8404/new_post_group?group_id=${group_id}`,
+          {
+            method: "GET",
+            credentials: "include",
+          }
+        );
+      } else {
+        response = await fetch("http://localhost:8404/new_post", {
+          method: "GET",
+          credentials: "include",
+        });
+      }
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Data from creating post",data);
-        
+        console.log("Data from creating post", data);
+
         if (data.Users && Array.isArray(data.Users)) {
           setFollowers(data.Users);
         }
@@ -108,11 +124,23 @@ export default function PostFormModal({ onClose, onPostCreated }) {
     }
 
     try {
-      const response = await fetch("http://localhost:8404/new_post", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
+      let response;
+      if (group_id && group_id > 0) {
+        response = await fetch(
+          `http://localhost:8404/new_post_group?group_id=${group_id}`,
+          {
+            method: "POST",
+            body: formData,
+            credentials: "include",
+          }
+        );
+      } else {
+        response = await fetch("http://localhost:8404/new_post", {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+        });
+      }
 
       if (!response.ok) {
         const data = await response.json();
@@ -237,7 +265,18 @@ export default function PostFormModal({ onClose, onPostCreated }) {
                     accept="image/*"
                   />
                   <label htmlFor="file-input" className={styles.fileLabel}>
-                    <img src="/icons/upload.svg" alt="" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="16"
+                      fill="none"
+                      viewBox="0 0 20 16"
+                    >
+                      <path
+                        fill="#475569"
+                        d="M10 0C6.834.025 3.933 2.153 3.173 5.536 1.232 6.352 0 8.194 0 10.376 0 13.385 2.376 16 5.312 16H6a1 1 0 1 0 0-2h-.688C3.526 14 2 12.321 2 10.375c0-1.493.934-2.734 2.344-3.156a.98.98 0 0 0 .687-.813C5.417 3.7 7.592 2.02 10 2c2.681-.02 5.021 2.287 5 5v1.094c0 .465.296.864.75.968C17.066 9.367 18 10.4 18 11.5c0 1.35-1.316 2.5-3 2.5h-1a1 1 0 0 0 0 2h1c2.734 0 5-1.983 5-4.5 0-1.815-1.215-3.42-3.013-4.115.002-.178.013-.359.013-.385.03-3.836-3.209-7.03-7-7m0 6L6.988 9.013 9 9v6a1 1 0 0 0 2 0V9l2.012.01z"
+                      ></path>
+                    </svg>
                     Choose File
                   </label>
                   <span className={styles.fileName}>
@@ -273,59 +312,60 @@ export default function PostFormModal({ onClose, onPostCreated }) {
                 )}
               </select>
             </div>
+            {action !== "groupe" && (
+              <div className={styles.formGroup}>
+                <label>Privacy</label>
+                <div className={styles.privacyOptions}>
+                  <label className={styles.privacyOption}>
+                    <input
+                      type="radio"
+                      value="private"
+                      name="privacy"
+                      checked={postFormInput.privacy === "private"}
+                      onChange={(e) => {
+                        setPostFormInput({
+                          ...postFormInput,
+                          privacy: e.target.value,
+                        });
+                      }}
+                    />
+                    <span>Private</span>
+                  </label>
 
-            <div className={styles.formGroup}>
-              <label>Privacy</label>
-              <div className={styles.privacyOptions}>
-                <label className={styles.privacyOption}>
-                  <input
-                    type="radio"
-                    value="private"
-                    name="privacy"
-                    checked={postFormInput.privacy === "private"}
-                    onChange={(e) => {
-                      setPostFormInput({
-                        ...postFormInput,
-                        privacy: e.target.value,
-                      });
-                    }}
-                  />
-                  <span>Private</span>
-                </label>
+                  <label className={styles.privacyOption}>
+                    <input
+                      type="radio"
+                      value="public"
+                      name="privacy"
+                      checked={postFormInput.privacy === "public"}
+                      onChange={(e) => {
+                        setPostFormInput({
+                          ...postFormInput,
+                          privacy: e.target.value,
+                        });
+                      }}
+                    />
+                    <span>Public</span>
+                  </label>
 
-                <label className={styles.privacyOption}>
-                  <input
-                    type="radio"
-                    value="public"
-                    name="privacy"
-                    checked={postFormInput.privacy === "public"}
-                    onChange={(e) => {
-                      setPostFormInput({
-                        ...postFormInput,
-                        privacy: e.target.value,
-                      });
-                    }}
-                  />
-                  <span>Public</span>
-                </label>
-
-                <label className={styles.privacyOption}>
-                  <input
-                    type="radio"
-                    value="almost_private"
-                    name="privacy"
-                    checked={postFormInput.privacy === "almost_private"}
-                    onChange={(e) => {
-                      setPostFormInput({
-                        ...postFormInput,
-                        privacy: e.target.value,
-                      });
-                    }}
-                  />
-                  <span>Almost Private</span>
-                </label>
+                  <label className={styles.privacyOption}>
+                    <input
+                      type="radio"
+                      value="almost_private"
+                      name="privacy"
+                      checked={postFormInput.privacy === "almost_private"}
+                      onChange={(e) => {
+                        setPostFormInput({
+                          ...postFormInput,
+                          privacy: e.target.value,
+                        });
+                      }}
+                    />
+                    <span>Almost Private</span>
+                  </label>
+                </div>
               </div>
-            </div>
+            )}
 
             {showAudienceSelector && (
               <div className={`${styles.formGroup} ${styles.audienceSelector}`}>

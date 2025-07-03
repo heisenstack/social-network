@@ -1,9 +1,8 @@
-import React from "react"; 
+import React from "react";
 import styles from "../styles/PostsComponent.module.css";
 import { handleLike } from "../functions/post";
 
 export default function PostsComponent({ post, setPosts }) {
-  console.log("setPosts:", setPosts);
 
   return (
     <div key={post.id} className={styles.postCardModern}>
@@ -41,7 +40,7 @@ export default function PostsComponent({ post, setPosts }) {
       <div className={styles.postCardContent}>
         <h3 className={styles.postTitleModern}>{post.title}</h3>
         <p className={styles.postTextModern}>{post.content}</p>
-
+{/* 
         {post.image && (
           <div className={styles.postImageContainer}>
             <img
@@ -50,7 +49,7 @@ export default function PostsComponent({ post, setPosts }) {
               className={styles.postImageModern}
             />
           </div>
-        )}
+        )} */}
       </div>
 
       <div className={styles.postCardFooter}>

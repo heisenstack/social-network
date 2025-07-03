@@ -1,15 +1,43 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import styles from "../styles/AllUsersPage.module.css"; 
-import { handleFollow, handelAccept, handleReject } from "../functions/user"; // Assuming these functions are correctly implemented
+import AuthForm from "../components/AuthForm";
+import styles from "../styles/AllUsersPage.module.css";
+import { handleFollow, handelAccept, handleReject } from "../functions/user";
 
 export default function AllUsersPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState("suggested");
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [pendingRequests, setPendingRequests] = useState();
+  const [isLoading, setIsLoading] = useState(true);
   const [receivedRequests, setReceivedRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const response = await fetch("http://localhost:8404/", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setIsLoggedIn(data);
+        }
+      } catch (error) {
+        console.log("Error checking login status:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkLoginStatus();
+  }, [isLoggedIn]);
 
   useEffect(() => {
     fetchUsers("suggested");
@@ -29,11 +57,9 @@ export default function AllUsersPage() {
           credentials: "include",
         }
       );
-      console.log("Pending requests before: " ,pendingRequests);
-      
+
       if (response.ok) {
         const data = await response.json();
-        console.log(`Fetched ${type} users:`, data);
         if (type === "suggested") {
           setSuggestedUsers(data);
         } else if (type === "pending") {
@@ -95,6 +121,24 @@ export default function AllUsersPage() {
       setError("Failed to follow user. Please try again.");
     }
   };
+  // {isLoading && (
+  //   <div className={styles.loadingContainer}>
+  //     <div className={styles.loadingSpinner}>Loading...</div>
+  //   </div>
+  // )}
+  
+  if (isLoading) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p className={styles.loadingText}>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return <AuthForm onLoginSuccess={() => setIsLoggedIn(true)} />;
+  }
 
   return (
     <div className={styles.allUsersContainer}>
@@ -104,9 +148,8 @@ export default function AllUsersPage() {
 
       <div className={styles.tabs}>
         <button
-          className={`${styles.tabButton} ${
-            activeTab === "suggested" ? styles.active : ""
-          }`}
+          className={`${styles.tabButton} ${activeTab === "suggested" ? styles.active : ""
+            }`}
           onClick={() => {
             setActiveTab("suggested");
             fetchUsers("suggested");
@@ -115,9 +158,8 @@ export default function AllUsersPage() {
           Suggested Users
         </button>
         <button
-          className={`${styles.tabButton} ${
-            activeTab === "pending" ? styles.active : ""
-          }`}
+          className={`${styles.tabButton} ${activeTab === "pending" ? styles.active : ""
+            }`}
           onClick={() => {
             setActiveTab("pending");
             fetchUsers("pending");
@@ -129,9 +171,8 @@ export default function AllUsersPage() {
           )}
         </button>
         <button
-          className={`${styles.tabButton} ${
-            activeTab === "received" ? styles.active : ""
-          }`}
+          className={`${styles.tabButton} ${activeTab === "received" ? styles.active : ""
+            }`}
           onClick={() => {
             setActiveTab("received");
             fetchUsers("received");
@@ -140,10 +181,10 @@ export default function AllUsersPage() {
           Received Requests
           {receivedRequests
             ? receivedRequests.length > 0 && (
-                <span className={styles.tabCount}>
-                  {receivedRequests.length}
-                </span>
-              )
+              <span className={styles.tabCount}>
+                {receivedRequests.length}
+              </span>
+            )
             : null}
         </button>
       </div>

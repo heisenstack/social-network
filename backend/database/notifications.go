@@ -14,10 +14,7 @@ var (
 )
 
 func SendWsMessage(user_id int64, message map[string]interface{}) {
-	Mutex.Lock()
-	defer Mutex.Unlock()
 	if clients, ok := Clients[user_id]; ok {
-		fmt.Println(ok, user_id, Clients)
 		for _, client := range clients {
 			err := client.WriteJSON(message)
 			if err != nil {
@@ -30,7 +27,9 @@ func SendWsMessage(user_id int64, message map[string]interface{}) {
 
 func CreateNotification(user_id, notified_id, post_id, group_id, event_id int64, type_notification string) error {
 	_, err := DB.Exec("INSERT INTO notifications (user_id, notified_id, post_id, group_id, event_id, type_notification) VALUES (?, ?, ?, ?, ?, ?)", user_id, notified_id, post_id, group_id, event_id, type_notification)
+	Mutex.Lock()
 	SendWsMessage(notified_id, map[string]interface{}{"type": "notifications"})
+	Mutex.Unlock()
 	return err
 }
 

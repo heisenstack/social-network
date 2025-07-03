@@ -35,7 +35,6 @@ func main() {
 	http.HandleFunc("/home", handlers.Home)
 	http.HandleFunc("/user", handlers.CheckTheUserHandler)
 	http.HandleFunc("/connections", handlers.GetConnectionsHandler)
-	http.HandleFunc("/get_user", handlers.GetUserHandler)
 	http.HandleFunc("/profile", handlers.ProfileHandler)
 	http.HandleFunc("/profile_posts", handlers.ProfilePostsHandler)
 	http.HandleFunc("/get_saved_posts", handlers.GetSavedPostsHandler)
@@ -73,6 +72,7 @@ func main() {
 	http.HandleFunc("/read_notification", handlers.MarkNotificationsAsReadHandler)
 	http.HandleFunc("/chats", handlers.ChatHandler)
 	http.HandleFunc("/chats_group", handlers.ChatGroupHandler)
+	http.HandleFunc("/read_messages", handlers.ReadMessagesHandler)
 	http.HandleFunc("/search", handlers.SearchHandler)
 	http.HandleFunc("/ws", handlers.WebSocketHandler)
 

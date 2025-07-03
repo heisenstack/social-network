@@ -42,7 +42,6 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	post, err = database.GetPost(user.ID, post.ID)
-	fmt.Println("Post:", post.ID)
 	if err != nil {
 		fmt.Println("Error retrieving post:", err)
 		response := map[string]string{"error": "Post not found"}
@@ -62,7 +61,6 @@ func LikeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	post.TotalLikes = count
 	post.IsLiked = !post.IsLiked
-	fmt.Println("Post liked:", post.IsLiked)
 	if post.UserID != user.ID {
 		if post.IsLiked {
 			if err = database.CreateNotification(user.ID, post.UserID, post.ID, post.GroupID, 0, type_notification); err != nil {

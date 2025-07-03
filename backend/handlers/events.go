@@ -219,7 +219,7 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	event, err := database.GetEvent(event_id)
+	event, err := database.GetEvent(event_id, user.ID)
 	if err != nil {
 		fmt.Println("Error retrieving event:", err)
 		response := map[string]string{"error": "Failed to retrieve event"}
@@ -229,6 +229,7 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	event.ID = event_id
 	event.GroupID = group_id
+	fmt.Println("Event retrieved successfully:", event)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(event)
@@ -303,14 +304,24 @@ func JoinToEventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type Event struct {
-		GroupID int64 `json:"group_id"`
-		EventID int64 `json:"event_id"`
+		GroupID int64  `json:"group_id"`
+		EventID int64  `json:"event_id"`
+		Type    string `json:"type"`
 	}
+
 	var event Event
 	err = json.NewDecoder(r.Body).Decode(&event)
 	if err != nil {
 		fmt.Println("Error decoding request body:", err)
 		response := map[string]string{"error": "Invalid request body"}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	if event.Type != "going" && event.Type != "not_going" {
+		fmt.Println("Invalid event type:", event.Type)
+		response := map[string]string{"error": "Invalid event type"}
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(response)
 		return
@@ -334,7 +345,7 @@ func JoinToEventHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = database.GetEvent(event.EventID)
+	_, err = database.GetEvent(event.EventID, user.ID)
 	if err != nil {
 		fmt.Println("Error retrieving event:", err)
 		response := map[string]string{"error": "Failed to retrieve event"}
@@ -352,8 +363,8 @@ func JoinToEventHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if member {
-		if err = database.LeaveEvent(user.ID, event.EventID); err != nil {
+	if member || event.Type == "not_going" {
+		if err = database.NotGoingToEvent(user.ID, event.EventID); err != nil {
 			fmt.Println("Error leaving event:", err)
 			response := map[string]string{"error": "Failed to leave event"}
 			w.WriteHeader(http.StatusInternalServerError)
@@ -364,7 +375,7 @@ func JoinToEventHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	} else {
-		if err = database.JoinToEvent(user.ID, event.EventID); err != nil {
+		if err = database.GoingToEvent(user.ID, event.EventID); err != nil {
 			fmt.Println("Error joining to event:", err)
 			response := map[string]string{"error": "Failed to join to event"}
 			w.WriteHeader(http.StatusInternalServerError)

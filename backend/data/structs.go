@@ -124,7 +124,7 @@ type Group struct {
 
 type Message struct {
 	ID                  int64  `json:"message_id" sqlite:"message_id"`
-	SenderID            int64  `json:"sender_id" sqlite:"sender_id"`
+	CurrentUser         int64  `json:"current_user" sqlite:"current_user"`
 	GroupID             int64  `json:"group_id" sqlite:"group_id"`
 	UserID              int64  `json:"user_id" sqlite:"user_id"`
 	Avatar              string `json:"avatar" sqlite:"avatar"`
@@ -174,6 +174,7 @@ type Event struct {
 	Name         string    `json:"name" sqlite:"name"`
 	Description  string    `json:"description" sqlite:"description"`
 	Image        string    `json:"image" sqlite:"image"`
+	Type         string    `json:"type" sqlite:"type"`
 	Location     string    `json:"location" sqlite:"location"`
 	StartDate    time.Time `json:"start_date" sqlite:"start_date"`
 	EndDate      time.Time `json:"end_date" sqlite:"end_date"`

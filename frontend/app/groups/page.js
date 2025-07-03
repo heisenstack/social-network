@@ -1,13 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
+import AuthForm from "../components/AuthForm";
 import { useRouter } from "next/navigation";
 import GroupCard from "../components/GroupCard";
 import InvitationCard from "../components/InvitationCard";
 import styles from "../styles/GroupsPage.module.css";
 import PendingGroupRequestCard from "../components/PendingCard";
 import GroupFormModal from "../components/GroupFromModal";
-import { leaveGroup } from "../functions/group";
 import RemoveGroupModal from "../components/RemoveGroupModal";
+import { joinGroup } from "../functions/group";
 import {
   handleFollow,
   handelAccept,
@@ -33,15 +34,6 @@ export default function GroupsPage() {
 
   const router = useRouter();
 
-  function handleCreateGroup() {
-    setShowGroupForm(true);
-  }
-
-  function handleGroupCreated(newGroup) {
-    setMyGroups([newGroup, ...myGroups]);
-    setShowGroupForm(false);
-  }
-
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
@@ -58,14 +50,23 @@ export default function GroupsPage() {
           setIsLoggedIn(data);
         }
       } catch (error) {
-        console.error("Error checking login status:", error);
+        console.log("Error checking login status:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
     checkLoginStatus();
-  }, []);
+  }, [isLoggedIn]);
+
+  function handleCreateGroup() {
+    setShowGroupForm(true);
+  }
+
+  function handleGroupCreated(newGroup) {
+    setMyGroups([newGroup, ...myGroups]);
+    setShowGroupForm(false);
+  }
 
   useInfiniteScroll({
     fetchMoreCallback: async () => {
@@ -100,7 +101,6 @@ export default function GroupsPage() {
       } else {
         setGroupData(data);
       }
-      console.log(`Data for ${endpoint}:`, data);
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching group data:", error);
@@ -141,7 +141,6 @@ export default function GroupsPage() {
         throw new Error("Failed to fetch invitations data");
       }
       const data = await response.json();
-      console.log("Invitations Data:", data);
       setGroupData(data);
       setIsLoading(false);
     } catch (error) {
@@ -171,6 +170,7 @@ export default function GroupsPage() {
   };
 
   const handleJoinGroup = (group) => {
+    joinGroup(group.group_id)
     setGroupData((prev) => prev.filter((g) => g.group_id !== group.group_id));
     setMyGroups((prev) => [...prev, { ...group, is_joined: true }]);
   };
@@ -197,6 +197,10 @@ export default function GroupsPage() {
   const removeGroupForModal = (groupId) => {
     handleDeleteGroup(groupId);
   };
+
+  if (!isLoggedIn) {
+    return <AuthForm onLoginSuccess={() => setIsLoggedIn(true)} />;
+  }
 
   return (
     <div className={styles.groupsPageContainer}>
@@ -231,33 +235,29 @@ export default function GroupsPage() {
 
           <div className={styles.groupsTabs}>
             <button
-              className={`${styles.tabButton} ${
-                activeTab === "my-groups" ? styles.activeTab : ""
-              }`}
+              className={`${styles.tabButton} ${activeTab === "my-groups" ? styles.activeTab : ""
+                }`}
               onClick={() => handleTabChange("my-groups")}
             >
               My Groups
             </button>
             <button
-              className={`${styles.tabButton} ${
-                activeTab === "discover" ? styles.activeTab : ""
-              }`}
+              className={`${styles.tabButton} ${activeTab === "discover" ? styles.activeTab : ""
+                }`}
               onClick={() => handleTabChange("discover")}
             >
               Discover
             </button>
             <button
-              className={`${styles.tabButton} ${
-                activeTab === "pending-groups" ? styles.activeTab : ""
-              }`}
+              className={`${styles.tabButton} ${activeTab === "pending-groups" ? styles.activeTab : ""
+                }`}
               onClick={() => handleTabChange("pending-groups")}
             >
               Pending Groups
             </button>
             <button
-              className={`${styles.tabButton} ${
-                activeTab === "invitations" ? styles.activeTab : ""
-              }`}
+              className={`${styles.tabButton} ${activeTab === "invitations" ? styles.activeTab : ""
+                }`}
               onClick={() => handleTabChange("invitations")}
             >
               Invitations
@@ -362,7 +362,9 @@ export default function GroupsPage() {
                     key={group.group_id}
                     group={group}
                     isJoined={false}
-                    onJoin={handleJoinGroup}
+                    onJoin={() => {
+                      handleJoinGroup(group);
+                    }}
                     onClick={() => {
                       handleGroupSelect(group);
                     }}
@@ -391,7 +393,6 @@ export default function GroupsPage() {
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log("dasdhhhas", group);
                     handleGroupSelect(group);
                   }}
                   onCancel={handleCancelRequest}

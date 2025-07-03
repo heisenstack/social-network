@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, use } from "react";
+import AuthForm from "../components/AuthForm";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "../styles/MessagesPage.module.css";
 import { addToListeners, removeFromListeners } from "../websocket/ws.js";
@@ -28,28 +29,36 @@ const Message = ({ message, isSent }) => {
 };
 
 const UserCard = ({ user, isActive, onClick }) => {
-  useEffect(() => {
-    const handleMessage = (msg) => {
-      if (
-        (user.total_messages || user.total_messages === 0) &&
-        msg.type === "message" &&
-        msg.username === user.username
-      ) {
-        user.total_messages++;
-      }
-    };
+  // const handleMessage = (msg) => {
+  //   console.log(isActive, msg);
 
-    addToListeners("message", handleMessage);
+  //   if (
+  //     !isActive &&
+  //     msg.type === "message" &&
+  //     ((user.username && msg.username === user.username) || (user.name && msg.name === user.name))
+  //   ) {
+  //     user.total_messages++;
+  //   }
+  // };
+  // useEffect(() => {
+  //   addToListeners("message", handleMessage);
 
-    return () => {
-      removeFromListeners("message", handleMessage);
-    };
-  }, [user]);
+  //   return () => {
+  //     removeFromListeners("message", handleMessage);
+  //   };
+  // }, []);
+  // console.log("user", user, isActive);
+  console.log(user.total_messages);
 
   return (
     <li
       className={`${styles.userItem} ${isActive ? styles.activeUser : ""}`}
-      onClick={onClick}
+      onClick={() => {
+        onClick();
+        if (user.total_messages > 0) {
+          user.total_messages = 0;
+        }
+      }}
       data-id={user.user_id || user.group_id}
     >
       <img
@@ -72,14 +81,10 @@ const UserCard = ({ user, isActive, onClick }) => {
                 : ""}
           </p>
         </div>
-        {user && user.total_messages > 0 ? (
+        {user && user.total_messages > 0 && (
           <div className={styles.unreadBadge}>
             {user.total_messages}
           </div>
-        ) : user.total_messages > 0 ? (
-          <div className={styles.unreadBadge}>{user.total_messages}</div>
-        ) : (
-          ""
         )}
       </div>
     </li>
@@ -87,14 +92,13 @@ const UserCard = ({ user, isActive, onClick }) => {
 };
 
 export default function MessagesPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [activeTab, setActiveTab] = useState("friends");
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef(null);
   const [users, setUsers] = useState([]);
-  const [canSendMessage, setCanSendMessage] = useState(true);
-  const [onlineUsers, setOnlineUsers] = useState(null);
   const [groups, setGroups] = useState([]);
   const [openEmojiSection, setOpenEmojiSection] = useState(false);
   const [offset, setOffset] = useState(0);
@@ -111,41 +115,33 @@ export default function MessagesPage() {
   const selectedGroupId = searchParams.get("group");
 
   useEffect(() => {
-    if (!selectedUserId && !selectedGroupId) return;
-    if (!users?.length && !groups?.length) return;
+    const checkLoginStatus = async () => {
+      try {
+        const response = await fetch("http://localhost:8404/", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
 
-    const user = selectedUserId
-      ? users?.find((u) => u.user_id == selectedUserId)
-      : null;
-    const group = selectedGroupId
-      ? groups?.find((g) => g.group_id == selectedGroupId)
-      : null;
-
-    if (user || group) {
-      setSelectedUser(user || group);
-      handleUserSelect(user || group);
-    } else {
-      getUserChat(selectedUserId, selectedGroupId).then((data) => {
-        if (data) {
-          setSelectedUser(data);
-          handleUserSelect(data);
-          setCanSendMessage(data.can_message);
-        } else {
-          setSelectedUser(null);
+        if (response.ok) {
+          const data = await response.json();
+          setIsLoggedIn(data);
         }
-      });
-    }
-    if (selectedUser) {
-      setSelectedUser((prev) => {
-        return {
-          ...prev,
-          total_messages: 0,
-        };
-      });
-    }
-  }, [selectedUserId, selectedGroupId, users, groups]);
+      } catch (error) {
+        console.log("Error checking login status:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkLoginStatus();
+  }, [isLoggedIn]);
 
   useEffect(() => {
+    if (!isLoggedIn) return;
+
     if (selectedGroupId) {
       setActiveTab("groups");
     } else {
@@ -153,19 +149,25 @@ export default function MessagesPage() {
     }
   }, [selectedUserId, selectedGroupId]);
 
-  const getUserChat = async (user_id = 0, group_id = 0) => {
-    return await fetch(
-      `http://localhost:8404/get_user?user_id=${user_id}&group_id=${group_id}`,
+  const getUserChat = async (user_id = 0) => {
+    const response = await fetch(
+      `http://localhost:8404/profile?user_id=${user_id}`,
       {
         method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include",
       }
     )
-      .then((response) => response.json())
-      .catch((error) => {
-        console.error("Error fetching user chat:", error);
-        return null;
-      });
+    if (response.ok) {
+      const data = await response.json();
+      // setUsers([data, ...users]);
+      setSelectedUser(data);
+    } else {
+      console.log("Error fetching user chat:", response.statusText);
+
+    }
   };
 
   const handleSeeProfile = () => {
@@ -178,55 +180,62 @@ export default function MessagesPage() {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:8404/connections?offset=${offset}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchGroups = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:8404/groups?type=joined&offset=${offset}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+      const data = await response.json();
+      setGroups(data);
+      console.log("Fetched groups:", data);
+
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:8404/connections?offset=${offset}`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
-        const data = await response.json();
+    if (!isLoggedIn) return;
 
-        setUsers(data);
-
-        const onlineUsers = data
-          .filter((user) => user.online)
-          .reduce((acc, user) => {
-            acc[user.user_id] = true;
-            return acc;
-          }, {});
-
-        setOnlineUsers(onlineUsers);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-      }
-    };
     fetchUsers();
   }, []);
 
   useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:8404/groups?type=joined&offset=${offset}`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
-        );
-        const data = await response.json();
-        setGroups(data);
-      } catch (error) {
-        console.error("Error fetching groups:", error);
-      }
-    };
+    if (!isLoggedIn) return;
+
     fetchGroups();
   }, []);
 
   useEffect(() => {
+    if (!isLoggedIn || (!selectedUserId && !selectedGroupId)) return;
+
+    handleUserSelect(selectedUserId, selectedGroupId, 0);
+
+  }, [selectedUserId, selectedGroupId, users, groups]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
@@ -251,6 +260,8 @@ export default function MessagesPage() {
   };
 
   useEffect(() => {
+    if (!isLoggedIn) return;
+
     if (selectedUser && usersListRef.current) {
       const selectedElement = usersListRef.current.querySelector(
         `.${styles.userItem}[data-id="${selectedUser.user_id || selectedUser.group_id
@@ -265,10 +276,23 @@ export default function MessagesPage() {
     }
   }, [selectedUser]);
 
-  const handleUserSelect = (user, offset = 0) => {
-    let fetchMessages = user.group_id
-      ? `chats_group?group_id=${user.group_id}&offset=${offset}`
-      : `chats?id=${user.user_id}&offset=${offset}`;
+  const handleUserSelect = (user_id, group_id, offset = 0) => {
+    const user = user_id
+      ? users?.find((u) => u.user_id == user_id)
+      : null;
+    const group = group_id
+      ? groups?.find((g) => g.group_id == group_id)
+      : null;
+
+    if (user || group) {
+      setSelectedUser(user || group);
+    } else {
+      getUserChat(user_id)
+    }
+
+    let fetchMessages = group_id
+      ? `chats_group?group_id=${group_id}&offset=${offset}`
+      : `chats?id=${user_id}&offset=${offset}`;
     fetch(`http://localhost:8404/${fetchMessages}`, {
       method: "GET",
       credentials: "include",
@@ -276,6 +300,7 @@ export default function MessagesPage() {
       .then((response) => response.json())
       .then((data) => {
         setMessages(data);
+        console.log("Fetched messages:", data);
       })
       .catch((error) => {
         console.error("Error fetching messages:", error);
@@ -298,73 +323,85 @@ export default function MessagesPage() {
       });
   };
 
-  useEffect(() => {
-    const handleMessage = (msg) => {
-      if (msg.type === "message") {
+  const handleMessage = (msg) => {
+    if (msg.type === "message") {
+      if (selectedUser &&
+        ((selectedUser.username && msg.username === selectedUser.username) ||
+          (selectedUser.name && msg.name === selectedUser.name) ||
+          msg.user_id === msg.current_user)) {
         setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            id: Date.now(),
-            content: msg.content,
-            username: msg.username,
-            created_at: "Just now",
-          },
+          ...prevMessages ? prevMessages : [],
+          msg,
         ]);
       }
-    };
-    const handleNewConnection = (msg) => {
-      if (msg.type === "new_connection") {
-        setOnlineUsers((prevOnlineUsers) => ({
-          ...prevOnlineUsers,
-          [msg.user_id]: true,
-        }));
+
+      if (!selectedUser) {
+        fetchUsers();
+        fetchGroups();
       }
-    };
-    const handleDisconnection = (msg) => {
-      if (msg.type === "disconnection") {
-        setOnlineUsers((prevOnlineUsers) => ({
-          ...prevOnlineUsers,
-          [msg.user_id]: false,
-        }));
-      }
-    };
+    } else if (msg.type === "new_connection" || msg.type === "disconnection") {
+      fetchUsers();
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
 
     addToListeners("message", handleMessage);
-    addToListeners("new_connection", handleNewConnection);
-    addToListeners("disconnection", handleDisconnection);
+    addToListeners("new_connection", handleMessage);
+    addToListeners("disconnection", handleMessage);
 
     return () => {
       removeFromListeners("message", handleMessage);
-      removeFromListeners("new_connection", handleNewConnection);
-      removeFromListeners("disconnection", handleDisconnection);
+      removeFromListeners("new_connection", handleMessage);
+      removeFromListeners("disconnection", handleMessage);
     };
   }, []);
 
+  const readMessages = async () => {
+    await fetch('http://localhost:8404/read_messages', {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: selectedUser.user_id || 0,
+        group_id: selectedUser.group_id || 0,
+      }),
+      credentials: "include",
+    });
+  }
+
+  useEffect(() => {
+    if (!isLoggedIn || !selectedUser) return;
+
+    readMessages();
+  }, [messages]);
+
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
+
     if (!newMessage.trim() || !selectedUser) return;
 
-    const mssg = selectedUser.group_id
-      ? {
-        type: "message",
-        group_id: selectedUser.group_id,
-        content: newMessage,
-      }
-      : {
-        type: "message",
-        user_id: selectedUser.user_id,
-        content: newMessage,
-      };
+    const mssg = {
+      type: "message",
+      group_id: selectedUser.group_id || 0,
+      user_id: selectedUser.user_id || 0,
+      content: newMessage,
+    }
 
     websocket.send(JSON.stringify(mssg));
-    console.log(mssg);
-
     setNewMessage("");
   };
 
   const toggleEmojiSection = () => {
     setOpenEmojiSection(!openEmojiSection);
   };
+
+  if (!isLoggedIn) {
+    return <AuthForm onLoginSuccess={() => setIsLoggedIn(true)} />;
+  }
 
   return (
     <div className={styles.messagesPageContainer}>
@@ -433,10 +470,10 @@ export default function MessagesPage() {
                   />
                 ))}
               {!users?.length && activeTab === "friends" && (
-                <div className={styles.noUsersMessage}>No friends found.</div>
+                <div className={styles.noUsersMessage}>You have no chats yet.</div>
               )}
               {!groups?.length && activeTab === "groups" && (
-                <div className={styles.noUsersMessage}>No groups found.</div>
+                <div className={styles.noUsersMessage}>You haven't joined any groups yet.</div>
               )}
             </ul>
           </div>
@@ -465,18 +502,9 @@ export default function MessagesPage() {
                     {selectedUser.username && (
                       <p className={styles.conversationUserStatus}>
                         <span
-                          className={`${styles.statusDot} ${selectedUser.user_id
-                            ? onlineUsers && onlineUsers[selectedUser.user_id]
-                              ? styles.online
-                              : styles.offline
-                            : styles.offline
-                            }`}
+                          className={`${styles.statusDot} ${selectedUser.online ? styles.online : styles.offline}`}
                         ></span>
-                        {selectedUser.user_id
-                          ? onlineUsers && onlineUsers[selectedUser.user_id]
-                            ? "Online"
-                            : "Offline"
-                          : "Offline"}
+                        {selectedUser.online ? "Online" : "Offline"}
                       </p>
                     )}
                   </div>
@@ -516,7 +544,7 @@ export default function MessagesPage() {
                     <Message
                       key={index}
                       message={message}
-                      isSent={message.username !== selectedUser.username}
+                      isSent={message.current_user ? message.user_id === message.current_user : message.username !== selectedUser.username}
                     />
                   ))
                 ) : (
@@ -527,7 +555,7 @@ export default function MessagesPage() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {canSendMessage ? (
+              {(selectedUser.is_following || selectedUser.privacy === "public") || (selectedUser.role !== "guest" && selectedUser.group_id) ? (
                 <form
                   className={styles.messageInputForm}
                   onSubmit={handleSendMessage}
@@ -562,8 +590,6 @@ export default function MessagesPage() {
                     placeholder="Type a message..."
                     value={newMessage}
                     onChange={(e) => {
-                      // console.log(newMessage);
-
                       setNewMessage(e.target.value)
                     }}
                     className={styles.messageInput}
