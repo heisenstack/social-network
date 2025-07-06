@@ -7,6 +7,7 @@ export default function EventFormModal({
   onEventCreated,
   my_groups,
   group,
+  action,
 }) {
   const [eventFormInput, setEventFormInput] = useState({
     name: "",
@@ -56,37 +57,37 @@ export default function EventFormModal({
   };
 
   useEffect(() => {
-    // if (!my_groups) {  
-      setIsLoading(true);
-      const getGroups = async () => {
-        try {
-          const response = await fetch(
-            "http://localhost:8404/groups?type=joined&offset=-1",
-            {
-              method: "GET",
-              credentials: "include",
-            }
-          );
-
-          if (!response.ok) {
-            const data = await response.json();
-
-            setError(data.error || "Failed to retreive groups");
-            isLoading(false);
-            return;
+    // if (!my_groups) {
+    setIsLoading(true);
+    const getGroups = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:8404/groups?type=joined&offset=-1",
+          {
+            method: "GET",
+            credentials: "include",
           }
+        );
 
-          const responseData = await response.json();
-          console.log("Groups data:", responseData);
+        if (!response.ok) {
+          const data = await response.json();
 
-          setMyGroups(responseData || []);
-        } catch (error) {
-          console.error("Error creating event:", error);
-        } finally {
-          setIsSubmitting(false);
+          setError(data.error || "Failed to retreive groups");
+          isLoading(false);
+          return;
         }
-      };
-      getGroups();
+
+        const responseData = await response.json();
+        console.log("Groups data:", responseData);
+
+        setMyGroups(responseData || []);
+      } catch (error) {
+        console.error("Error creating event:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+    getGroups();
     // }
   }, []);
 
@@ -125,7 +126,6 @@ export default function EventFormModal({
       const responseData = await response.json();
       console.log(responseData);
       console.log(formData);
-      
 
       const newEvent = {
         event_id: responseData.id || Date.now(),
@@ -197,7 +197,7 @@ export default function EventFormModal({
                 }}
               />
             </div>
-            {myGroups && (
+            {myGroups && action !== "group" && (
               <div className={styles.formGroup}>
                 <label htmlFor="event-group">Select Group</label>
                 <select
