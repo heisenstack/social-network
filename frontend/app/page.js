@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import LeftSidebar from "./components/LeftSideBar";
 import ProfileCard from "./components/ProfileCard";
 import TopGroups from "./components/TopGroups";
 import PostComponent from "./components/PostComponent";
-import AuthForm from "./components/AuthForm";
 import StoriesComponent from "./components/StoriesComponent";
 import ChatWidget from "./components/ChatWidget";
 import "./styles/page.css";
@@ -13,54 +12,22 @@ import "./styles/page.css";
 export default function Home() {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(null);
   const [homeData, setHomeData] = useState(null);
-
   const [posts, setPosts] = useState([]);
   const [stories, setStories] = useState([]);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [msgOffset, setMsgOffset] = useState(0);
+  const postsRef = useRef([]);
+  const msgsRef = useRef([]);
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const response = await fetch("http://localhost:8404/", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data === true) {
-            setIsLoggedIn(true);
-          } else {
-            setIsLoggedIn(false);
-          }
-        }
-      } catch (error) {
-        setError(true);
-        console.error("Error checking login status:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkLoginStatus();
+    fetchHomeData();
   }, []);
 
-  useEffect(() => {
-    if (isLoggedIn) {
-      fetchHomeData();
-    }
-  }, [isLoggedIn]);
-
-  const fetchHomeData = async (offset = 0) => {
+  const fetchHomeData = async (offset = 0, msgOffset = 0) => {
     try {
       const response = await fetch(
-        `http://localhost:8404/home?offset=${offset}&offset_messages=${offset}`,
+        `http://localhost:8404/home?offset=${offset}&offset_messages=${msgOffset}`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
@@ -72,57 +39,18 @@ export default function Home() {
 
       const data = await response.json();
 
-      if (!data.posts || !Array.isArray(data.posts)) {
-        if (offset === 0) setPosts([]);
-        setHasMorePosts(false);
-        return [];
-      }
-
       if (data.user.stories) {
         setStories(data.user.stories);
       }
-
-      if (offset === 0) {
-        setPosts(data.posts);
-      } else {
-        setPosts((prev) => [...prev, ...data.posts]);
-      }
-
-      if (data.posts.length === 0) {
-        setHasMorePosts(false);
-      } else {
-        setHasMorePosts(true);
-      }
+      setPosts(data.posts);
       setHomeData(data);
-
-      return data.posts;
     } catch (error) {
       setError(true);
       console.error("Error fetching posts:", error);
-      setHasMorePosts(false);
-      return [];
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    const handleScroll = () => {
-      const nearBottom =
-        window.innerHeight + window.scrollY >= document.body.offsetHeight - 500;
-      if (nearBottom && !isFetchingMore && hasMorePosts && isLoggedIn) {
-        setIsFetchingMore(true);
-        fetchHomeData(posts.length).then((newPosts) => {
-          if (newPosts.length === 0) {
-            setHasMorePosts(false);
-          }
-          setIsFetchingMore(false);
-        });
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [posts, isFetchingMore, hasMorePosts]);
 
   const addNewPost = (newPost) => {
     setPosts((prevPosts) => {
@@ -131,9 +59,17 @@ export default function Home() {
     });
   };
 
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
-  };
+  useEffect(() => {
+    const postsScroll = postsRef.current.scrollTop;
+    const handleScroll = () => {
+      console.log("Posts Ref Updated:", postsRef.current.scrollTop);
+    };
+
+    // handleScroll();
+    if (postsScroll) {
+      postsScroll.addEventListener("scroll", handleScroll);
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -143,6 +79,7 @@ export default function Home() {
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="error-container">
@@ -159,11 +96,7 @@ export default function Home() {
     );
   }
 
-  if (!isLoggedIn) {
-    return <AuthForm onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  if (isLoggedIn && homeData) {
+  if (homeData) {
     return (
       <div className="app-container">
         <div className="main-content">
@@ -179,9 +112,7 @@ export default function Home() {
               <div className="stories-section">
                 <StoriesComponent storiesUsers={stories} />
               </div>
-              <PostComponent 
-              // key={posts.post_id}
-              posts={posts} />
+              <PostComponent posts={posts} postsRef={postsRef} />
             </div>
 
             <div className="right-column">

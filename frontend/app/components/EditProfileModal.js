@@ -45,11 +45,12 @@ export default function EditProfileModal({ user, onClose, onSave }) {
       });
 
       const data = await response.json();
+      console.log("Updated data from EditProfileModal: ", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to update profile");
       }
-      
+
       onSave({
         ...user,
         username: formData.username,

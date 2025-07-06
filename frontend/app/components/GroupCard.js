@@ -1,68 +1,30 @@
-import {React, useState} from "react";
-import styles from"../styles/GroupCard.module.css";
-import { handleFollow } from "../functions/user";
+import { React, useState } from "react";
+import styles from "../styles/GroupCard.module.css";
 
 export default function GroupCard({
   group,
-  onClick,
   isJoined,
-  onDelete,
+  onClick,
+  onAction,
   onJoin,
-  onLeave,
 }) {
   const [localIsJoined, setLocalIsJoined] = useState(isJoined);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleAction = async (e) => {
-    e.stopPropagation();
+  const handleAction = (id) => {
     setIsProcessing(true);
-
     try {
       if (group.role === "admin") {
-        await handleDelete(e);
-      } else if (localIsJoined) {
-        await handleLeave(e);
+        onAction(id);
       } else {
-        await handleJoin(e);
+        onJoin(id);
       }
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleDelete = async (e) => {
-    e.stopPropagation();
-    try {
-      await handleFollow(0, group.group_id);
-      onDelete?.(group.group_id);
-    } catch (error) {
-      console.error("Error deleting group:", error);
-    }
-  };
-
-  const handleJoin = async (e) => {
-    e.stopPropagation();
-    try {
-      await handleFollow(0, group.group_id);
-      setLocalIsJoined(true);
-      onJoin?.(group);
-    } catch (error) {
-      console.error("Error joining group:", error);
-    }
-  };
-
-  const handleLeave = async (e) => {
-    e.stopPropagation();
-    try {
-      await handleFollow(0, group.group_id);
-      setLocalIsJoined(false);
-      onLeave?.(group);
-    } catch (error) {
-      console.error("Error leaving group:", error);
-    }
-  };
-
-return (
+  return (
     <div className={styles.groupCard} onClick={onClick}>
       <div className={styles.groupCardContent}>
         <div className={styles.groupHeader}>
@@ -78,26 +40,30 @@ return (
         </div>
 
         <div className={styles.groupDetails}>
-          <p className={styles.groupMeta}>{`${group.total_members || 0} members - ${
-            group.total_posts
-          } posts - ${group.privacy}`}</p>
+          <p className={styles.groupMeta}>{`${
+            group.total_members || 0
+          } members - ${group.total_posts} posts - ${group.privacy}`}</p>
         </div>
 
         <div className={styles.groupActions}>
           <button
-            className={`${styles.groupJoinBtn} ${localIsJoined ? "joined" : ""}`}
-            onClick={handleAction}
+            className={`${styles.groupJoinBtn} ${
+              localIsJoined ? "joined" : ""
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLocalIsJoined(!localIsJoined);
+              handleAction(group.group_id);
+            }}
             disabled={isProcessing}
           >
-            {isProcessing ? (
-              "Processing..."
-            ) : group.role === "admin" ? (
-              "Delete Group"
-            ) : localIsJoined ? (
-              "Leave"
-            ) : (
-              "Join Group"
-            )}
+            {isProcessing
+              ? "Processing..."
+              : group.role === "admin"
+              ? "Delete Group"
+              : localIsJoined
+              ? "Leave"
+              : "Join Group"}
           </button>
         </div>
       </div>

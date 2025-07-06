@@ -173,7 +173,7 @@ body {
   flex: 1;
   height: 100vh;
   overflow-y: auto;
-  padding: 1rem;
+  padding: 0 1rem;
   box-sizing: border-box;
   /* background-color: #fff; */
 }
@@ -191,5 +191,21 @@ body {
 
   .center-column {
     width: 100%;
+  }
+}
+
+@media (max-width: 320px) {
+  .main-content {
+    padding: 0; 
+    margin: 0;
+    width: 100vw; 
+  }
+
+  .center-column {
+    padding: 0;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    box-sizing: border-box;
   }
 }

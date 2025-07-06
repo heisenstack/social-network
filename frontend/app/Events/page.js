@@ -68,9 +68,10 @@ export default function EventsPage() {
 
       if (currentOffset === 0) {
         setEvents(data);
-      } else {
-        setEvents((prev) => [...prev, ...data]);
       }
+      // else {
+      //   setEvents((prev) => [...prev, ...data]);
+      // }
 
       if (data?.length === 0 || data?.length < 10) {
         setHasMoreEvents(false);
@@ -143,7 +144,7 @@ export default function EventsPage() {
       if (!response.ok)
         throw new Error(data.error || "Failed to join/leave event.");
       console.log(eventId, type);
-      
+
       setEvents(events.filter((event) => event.event_id !== eventId));
       // setEvents((prev) =>
       //   prev.map((e) =>

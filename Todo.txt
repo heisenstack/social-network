@@ -100,6 +100,8 @@
 
 - gad design dial ussers fach ytafichaw
 
+-Handle Accept dial invitation dial group katreturni (Failed to accept invitation UNIQUE constraint failed: group_members.group_id, group_members.user_id)
+-
 
 
 

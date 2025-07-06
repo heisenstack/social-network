@@ -135,7 +135,7 @@ export default function MessagesPage() {
     };
 
     checkLoginStatus();
-  }, [isLoggedIn]);
+  }, []);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -187,6 +187,7 @@ export default function MessagesPage() {
         }
       );
       const data = await response.json();
+      console.log("Fetched users:", data);
       setUsers(data);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -590,22 +591,7 @@ export default function MessagesPage() {
                     className={styles.actionButton}
                     onClick={handleSeeProfile}
                   >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M12 5V19M5 12H19"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    See Profile
+                    See Profile &rarr;
                   </button>
                 </div>
               </div>

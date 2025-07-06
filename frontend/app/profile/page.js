@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import PostsComponent from "@/app/components/PostsComponent";
 import EditProfileModal from "@/app/components/EditProfileModal";
 import styles from "../styles/ProfilePage.module.css";
+import { websocket } from "../websocket/ws.js";
 
 export default function ProfilePage() {
   const [isLoggedIn, setIsLoggedIn] = useState();
@@ -34,6 +35,8 @@ export default function ProfilePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [newMessage, setNewMessage] = useState("");
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -64,10 +67,27 @@ export default function ProfilePage() {
     setPicturePreview(type);
   }
   const handleProfileUpdate = (updatedData) => {
+    console.log(updatedData);
+
     setUserData({
       ...userData,
       ...updatedData,
     });
+  };
+
+  const handleSendMessage = async () => {
+    // e.preventDefault();
+
+    if (!newMessage.trim() || !userData) return;
+
+    const mssg = {
+      type: "message",
+      user_id: userData.user_id,
+      content: newMessage,
+    };
+
+    websocket.send(JSON.stringify(mssg));
+    setNewMessage("");
   };
 
   async function handleFollow(user_id) {
@@ -87,17 +107,27 @@ export default function ProfilePage() {
         const data = await response.json();
         console.log("Follow response data:", data);
 
-
         setUserData((prev) => {
           return {
             ...prev,
             type: data.action,
             total_followers: data.total_followers,
-            
           };
         });
       }
-      fetchUserPosts();
+      if (activeTab === "posts") {
+        console.log("Active tab: ", activeTab);
+
+        fetchUserPosts();
+      } else if (activeTab === "followers") {
+        console.log("Active tab: ", activeTab);
+
+        fetchFollowers();
+      } else if (activeTab === "following") {
+        console.log("Active tab: ", activeTab);
+
+        fetchFollowing();
+      }
     } catch (error) {
       console.error("Error following user:", error);
     }
@@ -197,8 +227,6 @@ export default function ProfilePage() {
   };
 
   const fetchFollowers = async () => {
-    if (followers.length > 0) return;
-
     setIsLoadingFollowers(true);
     try {
       const response = await fetch(
@@ -215,6 +243,7 @@ export default function ProfilePage() {
       if (response.ok) {
         const data = await response.json();
         setFollowers(data || []);
+        console.log(data);
       } else {
         console.error("Failed to fetch followers");
       }
@@ -226,8 +255,6 @@ export default function ProfilePage() {
   };
 
   const fetchFollowing = async () => {
-    if (following.length > 0) return;
-
     setIsLoadingFollowing(true);
     try {
       const response = await fetch(
@@ -244,6 +271,7 @@ export default function ProfilePage() {
       if (response.ok) {
         const data = await response.json();
         setFollowing(data || []);
+        console.log(data);
       } else {
         console.error("Failed to fetch following");
       }
@@ -294,8 +322,6 @@ export default function ProfilePage() {
     return <AuthForm onLoginSuccess={() => setIsLoggedIn(true)} />;
   }
 
-
-
   if (error) {
     return (
       <div className={styles.errorContainer}>
@@ -325,6 +351,43 @@ export default function ProfilePage() {
 
   return (
     <div className={styles.appContainer}>
+      {showMessageModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            {/* <h2 className={styles.modalTitle}>Send Message</h2> */}
+            <div className={styles.messageForm}>
+              <div className={styles.modalHeader}>
+                <h2 className={styles.modalTitle}>
+                  Send Message to {userData.username}
+                </h2>
+                <button
+                  className={styles.closeModalButton}
+                  onClick={() => setShowMessageModal(false)}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <textarea
+                onChange={(e) => setNewMessage(e.target.value)}
+                className={styles.messageInput}
+                placeholder="Type your message here..."
+              ></textarea>
+              <button
+                className={styles.sendMessageButton}
+                onClick={async () => {
+                  await handleSendMessage();
+                  setShowMessageModal(false);
+                  router.push(`/messages?user=${userData.user_id}`);
+                }}
+              >
+                Send Message
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={styles.profileContainer}>
         <div className={styles.profileHeader}>
           {picturePreview && (
@@ -377,7 +440,7 @@ export default function ProfilePage() {
           <div className={styles.profileInfo}>
             <div className={styles.profileDetails}>
               <div>
-                {userData.role !== "owner" &&
+                {userData.role !== "owner" && (
                   <div className={styles.profileStatusBadge}>
                     {userData.online ? (
                       <span className={styles.statusOnline}>Online</span>
@@ -385,9 +448,10 @@ export default function ProfilePage() {
                       <span className={styles.statusOffline}>Offline</span>
                     )}
                   </div>
-                }
-                <h1 className={styles.profileName}>{`${userData.first_name || ""
-                  } ${userData.last_name || ""}`}</h1>
+                )}
+                <h1 className={styles.profileName}>{`${
+                  userData.first_name || ""
+                } ${userData.last_name || ""}`}</h1>
                 <p className={styles.profileUsername}>
                   @{userData.username || "username"}
                   {userData.privacy === "private" && (
@@ -455,18 +519,26 @@ export default function ProfilePage() {
                     Edit Profile
                   </button>
                 ) : (
-                  <button
-                    className={
-                      userData.type === "Pending" ?
-                        styles.requestCancelBtn
-                        : userData.type === "Unfollow" ?
-                          styles.unfollowBtn
+                  <div className={styles.followActions}>
+                    <button
+                      className={styles.messageBtn}
+                      onClick={() => setShowMessageModal(true)}
+                    >
+                      Send Message
+                    </button>
+                    <button
+                      className={
+                        userData.type === "Pending"
+                          ? styles.requestCancelBtn
+                          : userData.type === "Unfollow"
+                          ? styles.unfollowBtn
                           : styles.followBtn
-                    }
-                    onClick={() => handleFollow(id)}
-                  >
-                    {userData.type}
-                  </button>
+                      }
+                      onClick={() => handleFollow(id)}
+                    >
+                      {userData.type}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -517,37 +589,42 @@ export default function ProfilePage() {
         <div className={styles.profileContent}>
           <div className={styles.profileTabs}>
             <button
-              className={`${styles.tabButton} ${activeTab === "posts" ? styles.active : ""
-                }`}
+              className={`${styles.tabButton} ${
+                activeTab === "posts" ? styles.active : ""
+              }`}
               onClick={() => handleTabChange("posts")}
             >
               Posts
             </button>
             <button
-              className={`${styles.tabButton} ${activeTab === "about" ? styles.active : ""
-                }`}
+              className={`${styles.tabButton} ${
+                activeTab === "about" ? styles.active : ""
+              }`}
               onClick={() => handleTabChange("about")}
             >
               About
             </button>
             <button
-              className={`${styles.tabButton} ${activeTab === "followers" ? styles.active : ""
-                }`}
+              className={`${styles.tabButton} ${
+                activeTab === "followers" ? styles.active : ""
+              }`}
               onClick={() => handleTabChange("followers")}
             >
               Followers
             </button>
             <button
-              className={`${styles.tabButton} ${activeTab === "following" ? styles.active : ""
-                }`}
+              className={`${styles.tabButton} ${
+                activeTab === "following" ? styles.active : ""
+              }`}
               onClick={() => handleTabChange("following")}
             >
               Following
             </button>
             {isOwnProfile && (
               <button
-                className={`${styles.tabButton} ${activeTab === "saved" ? styles.active : ""
-                  }`}
+                className={`${styles.tabButton} ${
+                  activeTab === "saved" ? styles.active : ""
+                }`}
                 onClick={() => handleTabChange("saved")}
               >
                 Saved Posts
@@ -591,8 +668,9 @@ export default function ProfilePage() {
                   <div className={styles.aboutItemContent}>
                     <div className={styles.infoRow}>
                       <span className={styles.infoLabel}>Full Name</span>
-                      <span className={styles.infoValue}>{`${userData.first_name || ""
-                        } ${userData.last_name || ""}`}</span>
+                      <span className={styles.infoValue}>{`${
+                        userData.first_name || ""
+                      } ${userData.last_name || ""}`}</span>
                     </div>
                     <div className={styles.infoRow}>
                       <span className={styles.infoLabel}>Username</span>
@@ -617,7 +695,7 @@ export default function ProfilePage() {
                       <span className={styles.infoValue}>
                         {userData.privacy
                           ? userData.privacy.charAt(0).toUpperCase() +
-                          userData.privacy.slice(1)
+                            userData.privacy.slice(1)
                           : "Public"}
                       </span>
                     </div>
@@ -677,8 +755,9 @@ export default function ProfilePage() {
               <div className={styles.savedContentContainer}>
                 <div className={styles.savedTabs}>
                   <button
-                    className={`${styles.savedTabButton} ${activeSubTab === "posts" ? styles.active : ""
-                      }`}
+                    className={`${styles.savedTabButton} ${
+                      activeSubTab === "posts" ? styles.active : ""
+                    }`}
                     onClick={() => {
                       fetchSavedPosts("post");
                       setActiveSubTab("posts");
@@ -687,8 +766,9 @@ export default function ProfilePage() {
                     Saved Posts
                   </button>
                   <button
-                    className={`${styles.savedTabButton} ${activeSubTab === "group-posts" ? styles.active : ""
-                      }`}
+                    className={`${styles.savedTabButton} ${
+                      activeSubTab === "group-posts" ? styles.active : ""
+                    }`}
                     onClick={() => {
                       fetchSavedPosts("group");
                       setActiveSubTab("group-posts");
@@ -843,15 +923,13 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-      {
-        showEditModal && userData && (
-          <EditProfileModal
-            user={userData}
-            onClose={() => setShowEditModal(false)}
-            onSave={handleProfileUpdate}
-          />
-        )
-      }
-    </div >
+      {showEditModal && userData && (
+        <EditProfileModal
+          user={userData}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleProfileUpdate}
+        />
+      )}
+    </div>
   );
 }
