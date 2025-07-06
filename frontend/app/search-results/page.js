@@ -6,6 +6,7 @@ import UserCard from "../components/UserCard";
 import GroupCard from "../components/GroupCard";
 import EventCard from "../components/EventCard";
 import PostCard from "../components/PostCard";
+import PostsComponent from "../components/PostsComponent";
 import styles from "../styles/SearchResults.module.css";
 
 export default function SearchResults() {
@@ -56,7 +57,7 @@ export default function SearchResults() {
             "Content-Type": "application/json",
           },
           credentials: "include",
-        } 
+        }
       );
 
       if (!response.ok) {
@@ -276,10 +277,11 @@ export default function SearchResults() {
             {posts.length > 0 ? (
               <div className={styles.resultCardsGrid}>
                 {posts.map((post) => (
-                  <PostCard
+                  <PostsComponent
                     key={post.post_id}
                     post={post}
                     onClick={() => router.push(`/post?id=${post.post_id}`)}
+                    setPosts={setPosts}
                   />
                 ))}
                 <button
